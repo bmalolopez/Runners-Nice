@@ -661,7 +661,7 @@ const MES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','se
 
 // ─── STATE ────────────────────────────────────────────────────
 let supa=null, CU=null, selType_=null, editRId=null;
-let rankView='week', currentTab='admin';
+let rankView='week', currentTab='admin', premiumTab='coach';
 let imgData={foto:null,promo:null}, chatSub=null;
 
 // ─── SUPABASE CONNECT ─────────────────────────────────────────
@@ -1466,15 +1466,28 @@ async function renderCoach(){
     </div>`;
     return;
   }
+  // Tabs para coach + nutrición
+  el.innerHTML=`<div style="display:flex;gap:8px;margin-bottom:16px">
+    <button class="btn ${premiumTab==='coach'?'btn-p':'btn-s'} btn-sm" onclick="premiumTab='coach';renderCoach()" style="flex:1">💪 Coach</button>
+    <button class="btn ${premiumTab==='nutricion'?'btn-p':'btn-s'} btn-sm" onclick="premiumTab='nutricion';renderCoach()" style="flex:1">🥗 Nutrición</button>
+  </div><div id="premiumContent"></div>`;
+
+  if(premiumTab==='nutricion'){
+    renderNutricion_();
+    return;
+  }
+
+  // Vista Coach
   setLoad('Analizando tu mes...');
   const now=new Date(); const d30=new Date(now); d30.setDate(now.getDate()-30);
   const {data:acts}=await supa.from('activities').select('*').eq('rid',CU.runner.id).gte('date',d30.toISOString().slice(0,10)).order('date',{ascending:false});
   hideLoad();
+  const contentEl=document.getElementById('premiumContent');
   if(!acts||!acts.length){
-    el.innerHTML='<div class="card tc" style="padding:30px"><div style="font-size:3rem">🏃‍♀️</div><p style="margin-top:10px">No tienes actividades registradas este mes. ¡Empieza hoy!</p><button class="btn btn-p mt10" onclick="go(\'actividades\')">+ Registrar actividad</button></div>';
+    contentEl.innerHTML='<div class="card tc" style="padding:30px"><div style="font-size:3rem">🏃‍♀️</div><p style="margin-top:10px">No tienes actividades registradas este mes. ¡Empieza hoy!</p><button class="btn btn-p mt10" onclick="go(\'actividades\')">+ Registrar actividad</button></div>';
     return;
   }
-  el.innerHTML=buildCoachHTML(acts,CU.runner);
+  contentEl.innerHTML=buildCoachHTML(acts,CU.runner);
 }
 
 function coachPreview(){
@@ -1700,7 +1713,22 @@ function buildCoachHTML(acts,runner){
   return h;
 }
 
-// ─── NUTRICIÓN ────────────────────────────────────────────────
+// ─── NUTRICIÓN (dentro de Premium) ─────────────────────────
+async function renderNutricion_(){
+  const el=document.getElementById('premiumContent');
+  setLoad('Cargando tu perfil nutricional...');
+  const {data:np}=await supa.from('nutrition').select('*').eq('rid',CU.runner.id).maybeSingle();
+  const {data:acts}=await supa.from('activities').select('pts,type').eq('rid',CU.runner.id).gte('date',new Date(Date.now()-30*864e5).toISOString().slice(0,10));
+  hideLoad();
+  const ptsMonth=(acts||[]).reduce((s,a)=>s+a.pts,0);
+  if(!np){
+    el.innerHTML=nutriForm(null);
+  } else {
+    el.innerHTML=nutriResults(np,ptsMonth)+'<div style="text-align:center;margin-top:8px"><button class="btn btn-s btn-sm" onclick="renderNutricion_()">✏️ Actualizar mis datos</button></div>';
+  }
+}
+
+// ─── NUTRICIÓN (sección independiente) ─────────────────────
 async function renderNutricion(){
   const el=document.getElementById('nutriC');
   if(CU.type==='admin'){
