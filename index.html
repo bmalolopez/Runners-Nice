@@ -1839,7 +1839,12 @@ async function saveNutricion(){
   if(ex) await supa.from('nutrition').update(row).eq('rid',CU.runner.id);
   else await supa.from('nutrition').insert(row);
   toast('¡Perfil guardado! 🥗');
-  renderNutricion();
+  // Si está dentro de Premium, usar renderNutricion_(), si no, usar renderNutricion()
+  if(document.getElementById('premiumContent')){
+    renderNutricion_();
+  } else {
+    renderNutricion();
+  }
 }
 
 function nutriResults(np,ptsMonth){
