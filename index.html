@@ -1724,7 +1724,7 @@ async function renderNutricion_(){
   if(!np){
     el.innerHTML=nutriForm(null);
   } else {
-    el.innerHTML=nutriResults(np,ptsMonth)+'<div style="text-align:center;margin-top:8px"><button class="btn btn-s btn-sm" onclick="renderNutricion_()">✏️ Actualizar mis datos</button></div>';
+    el.innerHTML=nutriResults(np,ptsMonth)+'<div style="text-align:center;margin-top:8px"><button class="btn btn-s btn-sm" onclick="document.getElementById(\'premiumContent\').innerHTML=nutriForm(null)">✏️ Actualizar mis datos</button></div>';
   }
 }
 
