@@ -985,7 +985,7 @@ async function renderInicio(){
       <div class="ai-row"><div class="ai-ico">${ICONS[a.type]||'🏃'}</div>
       <div class="ai-inf"><div class="ai-nm">${esc(a.detail)}</div><div class="ai-mt">${fmtD(a.date)}${a.note?' · '+esc(a.note):''}</div></div>
       <div class="ai-pt">+${a.pts}</div></div>`).join(''):'<p class="tc td" style="padding:10px">¡Registra tu primera actividad!</p>';
-  }catch(e){console.error(e);}
+  }catch(e){}
   hideLoad();
 }
 
