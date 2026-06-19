@@ -1719,12 +1719,13 @@ async function renderNutricion_(){
   setLoad('Cargando tu perfil nutricional...');
   const {data:np}=await supa.from('nutrition').select('*').eq('rid',CU.runner.id).maybeSingle();
   const {data:acts}=await supa.from('activities').select('pts,type').eq('rid',CU.runner.id).gte('date',new Date(Date.now()-30*864e5).toISOString().slice(0,10));
+  const {data:hist}=await supa.from('nutrition_history').select('*').eq('rid',CU.runner.id).order('created_at',{ascending:false}).limit(10);
   hideLoad();
   const ptsMonth=(acts||[]).reduce((s,a)=>s+a.pts,0);
   if(!np){
     el.innerHTML=nutriForm(null);
   } else {
-    el.innerHTML=nutriResults(np,ptsMonth)+'<div style="text-align:center;margin-top:8px"><button class="btn btn-s btn-sm" onclick="document.getElementById(\'premiumContent\').innerHTML=nutriForm(null)">✏️ Actualizar mis datos</button></div>';
+    el.innerHTML=nutriResults(np,ptsMonth,hist)+'<div style="text-align:center;margin-top:8px"><button class="btn btn-s btn-sm" onclick="document.getElementById(\'premiumContent\').innerHTML=nutriForm(null)">✏️ Actualizar mis datos</button></div>';
   }
 }
 
@@ -1757,12 +1758,13 @@ async function renderNutricion(){
   setLoad('Cargando tu perfil nutricional...');
   const {data:np}=await supa.from('nutrition').select('*').eq('rid',CU.runner.id).maybeSingle();
   const {data:acts}=await supa.from('activities').select('pts,type').eq('rid',CU.runner.id).gte('date',new Date(Date.now()-30*864e5).toISOString().slice(0,10));
+  const {data:hist}=await supa.from('nutrition_history').select('*').eq('rid',CU.runner.id).order('created_at',{ascending:false}).limit(10);
   hideLoad();
   const ptsMonth=(acts||[]).reduce((s,a)=>s+a.pts,0);
   if(!np){
     el.innerHTML=nutriForm(null);
   } else {
-    el.innerHTML=nutriResults(np,ptsMonth)+'<div style="text-align:center;margin-top:8px"><button class="btn btn-s btn-sm" onclick="document.getElementById(\'nutriC\').innerHTML=nutriForm(null)">✏️ Actualizar mis datos</button></div>';
+    el.innerHTML=nutriResults(np,ptsMonth,hist)+'<div style="text-align:center;margin-top:8px"><button class="btn btn-s btn-sm" onclick="document.getElementById(\'nutriC\').innerHTML=nutriForm(null)">✏️ Actualizar mis datos</button></div>';
   }
 }
 
@@ -1838,6 +1840,8 @@ async function saveNutricion(){
   const {data:ex}=await supa.from('nutrition').select('id').eq('rid',CU.runner.id).maybeSingle();
   if(ex) await supa.from('nutrition').update(row).eq('rid',CU.runner.id);
   else await supa.from('nutrition').insert(row);
+  // Guardar en historial
+  await supa.from('nutrition_history').insert({rid:CU.runner.id,peso});
   toast('¡Perfil guardado! 🥗');
   // Si está dentro de Premium, usar renderNutricion_(), si no, usar renderNutricion()
   if(document.getElementById('premiumContent')){
@@ -1847,7 +1851,7 @@ async function saveNutricion(){
   }
 }
 
-function nutriResults(np,ptsMonth){
+function nutriResults(np,ptsMonth,hist){
   const peso=np.peso, talla=np.talla, edad=np.edad;
   // TMB Mifflin-St Jeor (mujer)
   const tmb=10*peso+6.25*talla-5*edad-161;
@@ -1999,6 +2003,23 @@ function nutriResults(np,ptsMonth){
     </div>
     <div style="font-size:.8rem;color:var(--dim);line-height:1.6">🕗 Al despertar: 1 vaso grande en ayunas<br>🏃 Durante el día: no esperes tener sed<br>🌙 Antes de dormir: 1 vaso para recuperación nocturna</div>
   </div>`;
+
+  // Historial de peso
+  if(hist && hist.length){
+    const cambio = hist.length > 1 ? (hist[0].peso - hist[hist.length-1].peso).toFixed(1) : '0';
+    const tendencia = cambio > 0 ? '📈 Subida' : cambio < 0 ? '📉 Bajada' : '➡️ Estable';
+    h+=`<div class="card" style="background:rgba(212,105,154,.07);border-color:rgba(212,105,154,.35)">
+      <div class="ct">📊 Historial de Peso</div>
+      <p class="td mb10" style="font-size:.81rem">Últimos registros · ${tendencia} ${Math.abs(cambio)} kg</p>
+      <div style="display:grid;gap:6px">
+        ${hist.map((h,i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:var(--s2);border-radius:8px">
+          <div><div style="font-weight:700;font-size:.85rem">${h.peso} kg</div>
+          <div style="font-size:.7rem;color:var(--dim)">${new Date(h.created_at).toLocaleDateString('es-MX')}</div></div>
+          ${i > 0 ? `<div style="font-size:.75rem;color:var(--dim)">${(h.peso - hist[i-1].peso > 0 ? '+' : '')}${(h.peso - hist[i-1].peso).toFixed(1)} kg</div>` : ''}
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
 
   return h;
 }

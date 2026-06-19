@@ -104,6 +104,18 @@ create table if not exists notificaciones (
 alter table notificaciones enable row level security;
 create policy "rbr_all" on notificaciones for all using (true) with check (true);
 
+-- ── Historial de nutrición ────────────────────────────────────
+create table if not exists nutrition_history (
+  id uuid default gen_random_uuid() primary key,
+  created_at timestamptz default now(),
+  rid uuid,
+  peso numeric,
+  nota text
+);
+
+alter table nutrition_history enable row level security;
+create policy "rbr_all" on nutrition_history for all using (true) with check (true);
+
 -- ── Si ya tenías la base de datos, ejecuta estas líneas también ──
 alter table runners add column if not exists gmm text default 'no';
 alter table runners add column if not exists hospital text default '';
